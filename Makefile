@@ -6,9 +6,6 @@ GOARCH            = amd64
 ARTIFACT_DIR      = build
 PORT 							= 3000
 
-# TODO: Add make test and add some sample test files
-TEST_REPORT  = tests.xml
-
 COMMIT=$(shell git rev-parse HEAD)
 BRANCH=$(shell git rev-parse --abbrev-ref HEAD)
 
@@ -28,8 +25,11 @@ all: clean linux darwin
 install:
 	go install ${LDFLAGS} ./...
 
+test:
+	go test -v ./api/...
+
 # Build binary for Linux
-linux: dep clean
+linux: clean
 	cd ${BUILD_DIR}; \
 	GOOS=linux GOARCH=${GOARCH} go build ${LDFLAGS} -o ${ARTIFACT_DIR}/${BINARY}-linux-${GOARCH} . ; \
 	cd - >/dev/null
@@ -81,4 +81,4 @@ clean:
 	rm -rf ${ARTIFACT_DIR}/*
 	cd - >/dev/null
 
-.PHONY: dep linux darwin fmt clean
+.PHONY: linux darwin fmt clean

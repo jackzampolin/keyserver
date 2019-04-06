@@ -18,7 +18,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jackzampolin/go-boilerplate/api"
+	"github.com/jackzampolin/keyserver/api"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -43,8 +43,8 @@ var (
 
 // rootCmd represents the base command when called without any subcommands
 var rootCmd = &cobra.Command{
-	Use:   "go-boilerplate",
-	Short: "A boilerplate for an API written in Golang",
+	Use:   "keyserver",
+	Short: "A key managment server for high volume transaction signing",
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -58,7 +58,7 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initConfig)
-	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.go-boilerplate.yaml)")
+	rootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.keyserver/config.yaml)")
 	rootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
@@ -77,8 +77,9 @@ func initConfig() {
 			os.Exit(1)
 		}
 
-		viper.AddConfigPath(home)
-		viper.SetConfigName(".go-boilerplate")
+		// viper.AddConfigPath(home)
+		viper.AddConfigPath(fmt.Sprintf("%s/.keyserver/", home))
+		viper.SetConfigName("config")
 	}
 
 	viper.AutomaticEnv() // read in environment variables that match
