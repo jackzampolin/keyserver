@@ -5,10 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/cosmos/cosmos-sdk/client/keys"
+	"github.com/cosmos/cosmos-sdk/cmd/gaia/app"
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/keyerror"
+	"github.com/cosmos/cosmos-sdk/x/auth"
+	txbldr "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	bip39 "github.com/cosmos/go-bip39"
 	"github.com/gorilla/mux"
 )
@@ -17,6 +21,8 @@ const (
 	maxValidAccountValue = int(0x80000000 - 1)
 	maxValidIndexalue    = int(0x80000000 - 1)
 )
+
+var cdc = app.MakeCodec()
 
 // Server represents the API server
 type Server struct {
@@ -38,8 +44,94 @@ func (s *Server) Router() *mux.Router {
 	router.HandleFunc("/keys/{name}", s.GetKey).Methods("GET")
 	router.HandleFunc("/keys/{name}", s.PutKey).Methods("PUT")
 	router.HandleFunc("/keys/{name}", s.DeleteKey).Methods("DELETE")
+	router.HandleFunc("/tx/sign", s.Sign).Methods("POST")
 
 	return router
+}
+
+// SignBody is the body for a sign request
+type SignBody struct {
+	Tx            auth.StdTx `json:"tx"`
+	Name          string     `json:"name"`
+	Passphrase    string     `json:"passphrase"`
+	ChainID       string     `json:"chain_id"`
+	AccountNumber string     `json:"account_number"`
+	Sequence      string     `json:"sequence"`
+}
+
+// StdSignMsg returns a StdSignMsg from a SignBody request
+func (sb SignBody) StdSignMsg() txbldr.StdSignMsg {
+	acc, err := strconv.ParseInt(sb.AccountNumber, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	seq, err := strconv.ParseInt(sb.Sequence, 10, 64)
+	if err != nil {
+		panic(err)
+	}
+	return txbldr.StdSignMsg{
+		Memo:          sb.Tx.Memo,
+		Msgs:          sb.Tx.Msgs,
+		ChainID:       sb.ChainID,
+		AccountNumber: uint64(acc),
+		Sequence:      uint64(seq),
+		Fee: auth.StdFee{
+			Amount: sb.Tx.Fee.Amount,
+			Gas:    uint64(sb.Tx.Fee.Gas),
+		},
+	}
+}
+
+// Sign handles the /tx/sign route
+func (s *Server) Sign(w http.ResponseWriter, r *http.Request) {
+	var m SignBody
+
+	kb, err := keys.NewKeyBaseFromDir(s.KeyDir)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(newError(err).marshal())
+		return
+	}
+
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(newError(err).marshal())
+		return
+	}
+
+	err = cdc.UnmarshalJSON(body, &m)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write(newError(err).marshal())
+		return
+	}
+
+	fmt.Println(m)
+
+	sigBytes, pubkey, err := kb.Sign(m.Name, m.Passphrase, m.StdSignMsg().Bytes())
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(newError(err).marshal())
+		return
+	}
+
+	sigs := append(m.Tx.GetSignatures(), auth.StdSignature{
+		PubKey:    pubkey,
+		Signature: sigBytes,
+	})
+
+	signedStdTx := auth.NewStdTx(m.Tx.GetMsgs(), m.Tx.Fee, sigs, m.Tx.GetMemo())
+	out, err := json.Marshal(signedStdTx)
+	if err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write(newError(err).marshal())
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(out)
+	return
 }
 
 // VersionHandler handles the /version route
