@@ -12,6 +12,7 @@ import (
 	"github.com/cosmos/cosmos-sdk/codec"
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/keyerror"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
 	txbldr "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 	bip39 "github.com/cosmos/go-bip39"
@@ -56,37 +57,43 @@ func (s *Server) Router() *mux.Router {
 
 // SignBody is the body for a sign request
 type SignBody struct {
-	Tx            auth.StdTx `json:"tx"`
-	Name          string     `json:"name"`
-	Passphrase    string     `json:"passphrase"`
-	ChainID       string     `json:"chain_id"`
-	AccountNumber string     `json:"account_number"`
-	Sequence      string     `json:"sequence"`
+	Tx            json.RawMessage `json:"tx"`
+	Name          string          `json:"name"`
+	Passphrase    string          `json:"passphrase"`
+	ChainID       string          `json:"chain_id"`
+	AccountNumber string          `json:"account_number"`
+	Sequence      string          `json:"sequence"`
 }
 
 // StdSignMsg returns a StdSignMsg from a SignBody request
-func (sb SignBody) StdSignMsg() txbldr.StdSignMsg {
+func (sb SignBody) StdSignMsg() (stdSign txbldr.StdSignMsg, stdTx auth.StdTx, err error) {
+	err = cdc.UnmarshalJSON(sb.Tx, &stdTx)
+	if err != nil {
+		return
+	}
 	acc, err := strconv.ParseInt(sb.AccountNumber, 10, 64)
 	if err != nil {
-		panic(err)
+		return
 	}
 
 	seq, err := strconv.ParseInt(sb.Sequence, 10, 64)
 	if err != nil {
-		panic(err)
+		return
 	}
 
-	return txbldr.StdSignMsg{
-		Memo:          sb.Tx.Memo,
-		Msgs:          sb.Tx.Msgs,
+	stdSign = txbldr.StdSignMsg{
+		Memo:          stdTx.Memo,
+		Msgs:          stdTx.Msgs,
 		ChainID:       sb.ChainID,
 		AccountNumber: uint64(acc),
 		Sequence:      uint64(seq),
 		Fee: auth.StdFee{
-			Amount: sb.Tx.Fee.Amount,
-			Gas:    uint64(sb.Tx.Fee.Gas),
+			Amount: stdTx.Fee.Amount,
+			Gas:    uint64(stdTx.Fee.Gas),
 		},
 	}
+
+	return
 }
 
 // Sign handles the /tx/sign route
@@ -114,21 +121,21 @@ func (s *Server) Sign(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	fmt.Println(m)
+	stdSign, stdTx, err := m.StdSignMsg()
 
-	sigBytes, pubkey, err := kb.Sign(m.Name, m.Passphrase, m.StdSignMsg().Bytes())
+	sigBytes, pubkey, err := kb.Sign(m.Name, m.Passphrase, sdk.MustSortJSON(cdc.MustMarshalJSON(stdSign)))
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(newError(err).marshal())
 		return
 	}
 
-	sigs := append(m.Tx.GetSignatures(), auth.StdSignature{
+	sigs := append(stdTx.GetSignatures(), auth.StdSignature{
 		PubKey:    pubkey,
 		Signature: sigBytes,
 	})
 
-	signedStdTx := auth.NewStdTx(m.Tx.GetMsgs(), m.Tx.Fee, sigs, m.Tx.GetMemo())
+	signedStdTx := auth.NewStdTx(stdTx.GetMsgs(), stdTx.Fee, sigs, stdTx.GetMemo())
 	out, err := cdc.MarshalJSON(signedStdTx)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
