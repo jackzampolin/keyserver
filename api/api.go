@@ -9,6 +9,7 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	"github.com/cosmos/cosmos-sdk/cmd/gaia/app"
+	"github.com/cosmos/cosmos-sdk/codec"
 	ckeys "github.com/cosmos/cosmos-sdk/crypto/keys"
 	"github.com/cosmos/cosmos-sdk/crypto/keys/keyerror"
 	"github.com/cosmos/cosmos-sdk/x/auth"
@@ -22,7 +23,11 @@ const (
 	maxValidIndexalue    = int(0x80000000 - 1)
 )
 
-var cdc = app.MakeCodec()
+var cdc *codec.Codec
+
+func init() {
+	cdc = app.MakeCodec()
+}
 
 // Server represents the API server
 type Server struct {
@@ -65,10 +70,12 @@ func (sb SignBody) StdSignMsg() txbldr.StdSignMsg {
 	if err != nil {
 		panic(err)
 	}
+
 	seq, err := strconv.ParseInt(sb.Sequence, 10, 64)
 	if err != nil {
 		panic(err)
 	}
+
 	return txbldr.StdSignMsg{
 		Memo:          sb.Tx.Memo,
 		Msgs:          sb.Tx.Msgs,
@@ -122,7 +129,7 @@ func (s *Server) Sign(w http.ResponseWriter, r *http.Request) {
 	})
 
 	signedStdTx := auth.NewStdTx(m.Tx.GetMsgs(), m.Tx.Fee, sigs, m.Tx.GetMemo())
-	out, err := json.Marshal(signedStdTx)
+	out, err := cdc.MarshalJSON(signedStdTx)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write(newError(err).marshal())
