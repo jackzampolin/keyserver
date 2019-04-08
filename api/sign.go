@@ -22,6 +22,7 @@ type SignBody struct {
 	Sequence      string          `json:"sequence"`
 }
 
+// Marshal returns the json byte representation of the sign body
 func (sb SignBody) Marshal() []byte {
 	out, err := json.Marshal(sb)
 	if err != nil {
