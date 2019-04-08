@@ -65,6 +65,14 @@ type SignBody struct {
 	Sequence      string          `json:"sequence"`
 }
 
+func (sb SignBody) Marshal() []byte {
+	out, err := json.Marshal(sb)
+	if err != nil {
+		panic(err)
+	}
+	return out
+}
+
 // StdSignMsg returns a StdSignMsg from a SignBody request
 func (sb SignBody) StdSignMsg() (stdSign txbldr.StdSignMsg, stdTx auth.StdTx, err error) {
 	err = cdc.UnmarshalJSON(sb.Tx, &stdTx)
@@ -235,12 +243,12 @@ func (s *Server) GetKeys(w http.ResponseWriter, r *http.Request) {
 type AddNewKey struct {
 	Name     string `json:"name"`
 	Password string `json:"password"`
-	Mnemonic string `json:"mnemonic"`
+	Mnemonic string `json:"mnemonic,omitempty"`
 	Account  int    `json:"account,string,omitempty"`
 	Index    int    `json:"index,string,omitempty"`
 }
 
-func (ak AddNewKey) marshal() []byte {
+func (ak AddNewKey) Marshal() []byte {
 	out, err := json.Marshal(ak)
 	if err != nil {
 		panic(err)
@@ -417,7 +425,7 @@ type UpdateKeyBody struct {
 	OldPassword string `json:"old_password"`
 }
 
-func (u UpdateKeyBody) marshal() []byte {
+func (u UpdateKeyBody) Marshal() []byte {
 	out, err := json.Marshal(u)
 	if err != nil {
 		panic(err)
@@ -461,7 +469,7 @@ func (s *Server) PutKey(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	w.WriteHeader(http.StatusNoContent)
 	return
 }
 
@@ -470,7 +478,7 @@ type DeleteKeyBody struct {
 	Password string `json:"password"`
 }
 
-func (u DeleteKeyBody) marshal() []byte {
+func (u DeleteKeyBody) Marshal() []byte {
 	out, err := json.Marshal(u)
 	if err != nil {
 		panic(err)

@@ -38,7 +38,7 @@ func TestGetKeys(t *testing.T) {
 
 	// test adding a key w/ existing mnemonic
 	addNP := AddNewKey{Name: testKey, Password: testPass, Mnemonic: sMenominc}
-	key := unmarshalKeyOutput(postRoute(t, fmt.Sprintf("%s/keys", server.URL), addNP.marshal(), 200))
+	key := unmarshalKeyOutput(postRoute(t, fmt.Sprintf("%s/keys", server.URL), addNP.Marshal(), 200))
 	require.Equal(t, addNP.Name, key.Name)
 	require.Equal(t, sAcc, key.Address)
 	require.Equal(t, sAccPub, key.PubKey)

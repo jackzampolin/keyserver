@@ -19,4 +19,4 @@ build
 vendor
 
 # Ignore testing directory
-# test_data
+test_data
