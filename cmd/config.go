@@ -35,7 +35,12 @@ var configCmd = &cobra.Command{
 			return
 		}
 
-		s := api.Server{Port: 3000, KeyDir: fmt.Sprintf("%s/.keyserver", home)}
+		s := api.Server{
+			Port:   3000,
+			KeyDir: fmt.Sprintf("%s/.keyserver", home),
+			Node:   "http://localhost:26657",
+		}
+
 		if _, err := os.Stat(s.KeyDir); os.IsNotExist(err) {
 			err := os.MkdirAll(s.KeyDir, 0777)
 			if err != nil {
