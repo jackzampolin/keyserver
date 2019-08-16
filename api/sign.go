@@ -9,7 +9,6 @@ import (
 	"github.com/cosmos/cosmos-sdk/client/keys"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/cosmos/cosmos-sdk/x/auth"
-	txbldr "github.com/cosmos/cosmos-sdk/x/auth/client/txbuilder"
 )
 
 // SignBody is the body for a sign request
@@ -32,7 +31,7 @@ func (sb SignBody) Marshal() []byte {
 }
 
 // StdSignMsg returns a StdSignMsg from a SignBody request
-func (sb SignBody) StdSignMsg() (stdSign txbldr.StdSignMsg, stdTx auth.StdTx, err error) {
+func (sb SignBody) StdSignMsg() (stdSign auth.StdSignMsg, stdTx auth.StdTx, err error) {
 	err = cdc.UnmarshalJSON(sb.Tx, &stdTx)
 	if err != nil {
 		return
@@ -47,7 +46,7 @@ func (sb SignBody) StdSignMsg() (stdSign txbldr.StdSignMsg, stdTx auth.StdTx, er
 		return
 	}
 
-	stdSign = txbldr.StdSignMsg{
+	stdSign = auth.StdSignMsg{
 		Memo:          stdTx.Memo,
 		Msgs:          stdTx.Msgs,
 		ChainID:       sb.ChainID,

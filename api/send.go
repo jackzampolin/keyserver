@@ -67,7 +67,7 @@ func (s *Server) BankSend(w http.ResponseWriter, r *http.Request) {
 	}
 
 	stdTx := auth.NewStdTx(
-		[]sdk.Msg{bank.NewMsgSend(sb.Sender, sb.Reciever, coins)},
+		[]sdk.Msg{bank.MsgSend{sb.Sender, sb.Reciever, coins}},
 		auth.NewStdFee(20000, fees),
 		[]auth.StdSignature{{}},
 		sb.Memo,
@@ -85,7 +85,7 @@ func (s *Server) BankSend(w http.ResponseWriter, r *http.Request) {
 		adj, err := strconv.ParseFloat(sb.GasAdjustment, 64)
 		if err != nil {
 			w.WriteHeader(http.StatusBadRequest)
-			w.Write(newError(fmt.Errorf("failed to parse gasAdjustment %d into float64", sb.GasAdjustment)).marshal())
+			w.Write(newError(fmt.Errorf("failed to parse gasAdjustment %s into float64", sb.GasAdjustment)).marshal())
 			return
 		}
 		gas = uint64(adj * float64(gas))

@@ -66,22 +66,22 @@ func TestGetKeys(t *testing.T) {
 
 	// TestUpdateKey bad path
 	badUpdatePass := UpdateKeyBody{OldPassword: testKey, NewPassword: testPassAlt}
-	wrongPass := unmarshalError(putRoute(t, fmt.Sprintf("%s/keys/%s", server.URL, testKey), badUpdatePass.marshal(), 401))
+	wrongPass := unmarshalError(putRoute(t, fmt.Sprintf("%s/keys/%s", server.URL, testKey), badUpdatePass.Marshal(), 401))
 	require.NotEmpty(t, wrongPass.Error)
 
 	// TestUpdateKey happy path
 	updatePass := UpdateKeyBody{OldPassword: testPass, NewPassword: testPassAlt}
-	goodPass := putRoute(t, fmt.Sprintf("%s/keys/%s", server.URL, testKey), updatePass.marshal(), 200)
+	goodPass := putRoute(t, fmt.Sprintf("%s/keys/%s", server.URL, testKey), updatePass.Marshal(), 204)
 	require.Empty(t, goodPass)
 
 	// Test delete key bad path
 	deleteKey := DeleteKeyBody{Password: testPass}
-	badPath := unmarshalError(deleteRoute(t, fmt.Sprintf("%s/keys/%s", server.URL, testKey), deleteKey.marshal(), 401))
+	badPath := unmarshalError(deleteRoute(t, fmt.Sprintf("%s/keys/%s", server.URL, testKey), deleteKey.Marshal(), 401))
 	require.NotEmpty(t, badPath.Error)
 
 	// Test delete key happy path
 	deleteKey = DeleteKeyBody{Password: testPassAlt}
-	happyPath := deleteRoute(t, fmt.Sprintf("%s/keys/%s", server.URL, testKey), deleteKey.marshal(), 200)
+	happyPath := deleteRoute(t, fmt.Sprintf("%s/keys/%s", server.URL, testKey), deleteKey.Marshal(), 200)
 	require.Empty(t, happyPath)
 }
 
@@ -124,7 +124,7 @@ func getRoute(t *testing.T, route string, expStatus int) []byte {
 		t.Fatal(err)
 	}
 	if resp.StatusCode != expStatus {
-		t.Fatalf("Expected status '%d', got '%d'\n", expStatus, resp.StatusCode)
+		t.Fatalf("Expected status '%d', got '%d' -> route GET %s\n", expStatus, resp.StatusCode, route)
 	}
 	out, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -139,7 +139,7 @@ func postRoute(t *testing.T, route string, data []byte, expStatus int) []byte {
 		t.Fatal(err)
 	}
 	if resp.StatusCode != expStatus {
-		t.Fatalf("Expected status '%d', got '%d'\n", expStatus, resp.StatusCode)
+		t.Fatalf("Expected status '%d', got '%d' -> route POST %s\n", expStatus, resp.StatusCode, route)
 	}
 	out, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -160,7 +160,7 @@ func putRoute(t *testing.T, route string, data []byte, expStatus int) []byte {
 	}
 
 	if resp.StatusCode != expStatus {
-		t.Fatalf("Expected status '%d', got '%d'\n", expStatus, resp.StatusCode)
+		t.Fatalf("Expected status '%d', got '%d' -> route PUT %s\n", expStatus, resp.StatusCode, route)
 	}
 	out, err := ioutil.ReadAll(resp.Body)
 	if err != nil {
@@ -181,7 +181,7 @@ func deleteRoute(t *testing.T, route string, data []byte, expStatus int) []byte 
 	}
 
 	if resp.StatusCode != expStatus {
-		t.Fatalf("Expected status '%d', got '%d'\n", expStatus, resp.StatusCode)
+		t.Fatalf("Expected status '%d', got '%d' -> route DELETE %s\n", expStatus, resp.StatusCode, route)
 	}
 	out, err := ioutil.ReadAll(resp.Body)
 	if err != nil {

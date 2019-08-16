@@ -3,7 +3,7 @@ package api
 import (
 	"errors"
 
-	"github.com/cosmos/cosmos-sdk/cmd/gaia/app"
+	"github.com/cosmos/gaia/app"
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
 	"github.com/gorilla/mux"
